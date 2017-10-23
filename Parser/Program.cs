@@ -46,23 +46,38 @@ namespace Parser
 
             Console.WriteLine($"{DateTime.Now}   Number of Users in db: {citizensindb.Count().ToString()} Number of Users in file: {distinctusers.Count().ToString()}");
 
-            //Join distinctusers with addresses so that you can get back the UserId primary key
+           
+            //Join distinctusers with addresses so that you can get back the AddressId primary key
             var test = (from ca in distinctusers
                         join ka in addressesindb on new { AddressName=ca[5], County = ca[6] }  equals new { ka.AddressName, ka.County }
-                        select new { ca, ka.AddressId }).ToList();
+                        select new User {
+                            Vat = Convert.ToInt64(ca[0]),
+                            FirstName = ca[1],
+                            LastName = ca[2],
+                            EMail = ca[3],
+                            Password = "123",
+                            Phone = (Convert.ToInt64(ca[4])),
+                            AddressId = ka.AddressId,
+                            EmailSent = false
+                             }).ToList();
 
-           // For all the citizens that do not exist in the db, create a new User object
-           var userstobeinstertedondb = (from e in test
-                                          where !(from m in citizensindb
-                                                  select m.Vat).Contains(Convert.ToInt64(e.ca[0]))
+            // For all the citizens that do not exist in the db, create a new User object
+
+            //   var userstobeinstertedondb = (from e in test
+            //      where !(from m in citizensindb
+            //              select m.Vat).Contains(Convert.ToInt64(e.ca[0]))
+            var userstobeinstertedondb = (from e in test
+                                          join userindb in citizensindb on e.Vat equals userindb.Vat  into ab
+                                          from c in ab.DefaultIfEmpty()
+                                          where c == null
                                           select new User
                                           {
-                                              Vat = Convert.ToInt64(e.ca[0]),
-                                              FirstName = e.ca[1],
-                                              LastName = e.ca[2],
-                                              EMail = e.ca[3],
+                                              Vat = Convert.ToInt64(e.Vat),
+                                              FirstName = e.FirstName,
+                                              LastName = e.LastName,
+                                              EMail = e.EMail,
                                               Password = sha256_hash(RandomString(16)),
-                                              Phone = (Convert.ToInt64(e.ca[4])),
+                                              Phone = e.Phone,
                                               AddressId = e.AddressId,
                                               EmailSent = false
                                           }
